@@ -1,29 +1,34 @@
+from __future__ import annotations
+from typing import Any
+import pickle
 import numpy as np
 
 
 class Game:
-    def __init__(self, rows: int, cols: int, k: int = 4) -> None:
-        self._grid = np.zeros((rows, cols), dtype=np.int8)
-        self._k = k
+    def __init__(self, config: dict[str, Any] = None) -> None:
+        self._config = Game.default_config()
+        if config is not None:
+            self._config |= config
 
-        # TOKENS: 0 - Empty, 1 - Red, 2 - Yellow
-        self._players = [1, 2]
+        self._grid = np.zeros(self._config["shape"], dtype=np.int8)
+        self._k = self._config["k"]
+        self._players = self._config["players"]
+
         self._active = 0
         self._time = 0
 
     # PUBLIC METHODS #
-
-    def render(self) -> None:
-        print(" -" + "--" * self._grid.shape[1])
-        for row in range(self._grid.shape[0]):
-            print("|", end=" ")
-            for col in range(self._grid.shape[1]):
-                print(self._grid[row][col], end=" ")
-            print("|")
-        print(" -" + "--" * self._grid.shape[1])
+    def start(self, state: dict[str, Any] = None) -> None:
+        if state is None:
+            self._grid = np.zeros(self._config["shape"], dtype=np.int8)
+            self._active = 0
+            self._time = 0
+        else:
+            self._grid = state["grid"]
+            self._active = state["active"]
+            self._time = state["time"]
 
     def transition(self, action: int) -> None:
-        # def place_token(grid: np.ndarray, token: int, col: int, row: int = None) -> bool:
         if action < 0 or action >= self._grid.shape[1]:
             return
         if np.all(self._grid[:, action] != 0):
@@ -59,6 +64,57 @@ class Game:
             or self._check_diagonal_lines()
             or np.all(self._grid != 0)
         )
+
+    def report(self) -> dict[str, Any]:
+        report = {}
+        if np.all(self._grid != 0):
+            report = {"result": "draw", "winner": None}
+        else:
+            report = {"result": "win", "winner": self._players[self._active]}
+        return report
+
+    def render(self) -> None:
+        print("===" * self._grid.shape[1])
+        print(f"Time: {self._time} - Active: {self._players[self._active]}")
+        print(" -" + "--" * self._grid.shape[1])
+        for row in range(self._grid.shape[0]):
+            print("|", end=" ")
+            for col in range(self._grid.shape[1]):
+                print(self._grid[row][col], end=" ")
+            print("|")
+        print(" -" + "--" * self._grid.shape[1])
+        print("===" * self._grid.shape[1])
+
+    def save(self, filename: str) -> None:
+        instance = {
+            "grid": self._grid,
+            "active": self._active,
+            "time": self._time,
+            "config": self._config,
+        }
+
+        with open(filename, "wb+") as f:
+            pickle.dump(instance, f)
+
+    @classmethod
+    def load(cls, filename: str) -> Game:
+        with open(filename, "rb") as f:
+            instance = pickle.load(f)
+
+        game = cls(instance["config"])
+        game._grid = instance["grid"]
+        game._active = instance["active"]
+        game._time = instance["time"]
+
+        return game
+
+    @classmethod
+    def default_config(cls) -> dict[str, Any]:
+        return {"shape": (6, 7), "k": 4, "players": [1, 2]}
+
+    @property
+    def state(self) -> dict[str, Any]:
+        return {"grid": np.copy(self._grid), "active": self._active, "time": self._time}
 
     # PRIVATE METHODS #
 

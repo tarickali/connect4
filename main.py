@@ -2,18 +2,20 @@ import random
 from game import Game
 
 
-def main():
-    ROWS, COLS, K = 6, 7, 4
-    game = Game(ROWS, COLS, K)
+def driver():
+    config = {"shape": (6, 7), "k": 4}
+    game = Game(config)
 
+    game.start()
     while not game.terminal():
         game.render()
         action = random.choice(game.generate_actions())
         game.transition(action)
         print(f"Action: {action}")
     game.render()
-    print(f"Winner: {game._active} after time: {game._time}")
+
+    print(game.report())
 
 
 if __name__ == "__main__":
-    main()
+    driver()
