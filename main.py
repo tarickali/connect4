@@ -1,17 +1,17 @@
 import random
-from game import Game
+from game import Connect4
 
 
 def driver():
     config = {"shape": (6, 7), "k": 4}
-    game = Game(config)
+    game = Connect4(config)
 
-    game.start()
+    state = game.start()
     while not game.terminal():
         game.render()
         action = random.choice(game.generate_actions())
-        game.transition(action)
         print(f"Action: {action}")
+        state = game.transition(action)
     game.render()
 
     print(game.report())
